@@ -1,0 +1,13 @@
+node_modules/
+__pycache__/
+.env
+*.pyc
+backups/
+
+# frontend
+frontend/.next/
+frontend/out/
+
+# contracts
+contracts/cache/
+contracts/out/

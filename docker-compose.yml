@@ -1,0 +1,52 @@
+version: "3.8"
+services:
+  falkordb:
+    image: falkordb/falkordb:v4.20.4
+    container_name: tendril-falkordb
+    ports:
+      - "6379:6379"
+      - "3000:3000"   # FalkorDB Browser
+    volumes:
+      - falkordb-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  tendril-api:
+    build: .
+    container_name: tendril-api
+    environment:
+      NODE_ENV: production
+      FALKORDB_HOST: falkordb
+      FALKORDB_PORT: 6379
+      TENDRIL_GRAPH: tendril
+      TENDRIL_API_PORT: 8787
+      TENDRIL_API_TOKEN: ${TENDRIL_API_TOKEN:?Set TENDRIL_API_TOKEN in .env}
+      TENDRIL_ALLOWED_ORIGINS: ${TENDRIL_ALLOWED_ORIGINS:-http://localhost:3001}
+      TENDRIL_RATE_LIMIT_REDIS_URL: ${TENDRIL_RATE_LIMIT_REDIS_URL:-redis://falkordb:6379}
+    ports:
+      - "8787:8787"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:8787/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    depends_on:
+      falkordb:
+        condition: service_healthy
+  frontend:
+    build: ./frontend
+    container_name: tendril-frontend
+    environment:
+      NODE_ENV: production
+      TENDRIL_API_URL: http://tendril-api:8787
+      TENDRIL_API_TOKEN: ${TENDRIL_API_TOKEN:?Set TENDRIL_API_TOKEN in .env}
+    ports:
+      - "3001:3000"
+    depends_on:
+      tendril-api:
+        condition: service_healthy
+volumes:
+  falkordb-data:

@@ -1,0 +1,39 @@
+events {}
+
+http {
+  limit_req_zone $binary_remote_addr zone=tendril_api:10m rate=10r/s;
+
+  server {
+    listen 80;
+    server_name _;
+    return 301 https://$host$request_uri;
+  }
+
+  server {
+    listen 443 ssl http2;
+    server_name example.com;
+
+    ssl_certificate /etc/nginx/tls/fullchain.pem;
+    ssl_certificate_key /etc/nginx/tls/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options DENY always;
+    add_header Referrer-Policy no-referrer always;
+
+    location /api/ {
+      limit_req zone=tendril_api burst=20 nodelay;
+      proxy_pass http://tendril-api:8787;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+      proxy_pass http://tendril-frontend:3000;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-Proto $scheme;
+    }
+  }
+}

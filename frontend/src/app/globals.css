@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #07090d;
+  --bg-soft: #0c1119;
+  --panel: rgba(14, 20, 29, 0.92);
+  --panel-raised: #171f2b;
+  --border: rgba(148, 163, 184, 0.16);
+  --border-strong: rgba(148, 163, 184, 0.28);
+  --accent: #91aaa5;
+  --accent-dim: rgba(122, 161, 154, 0.12);
+  --critical: #b87882;
+  --high: #ae9567;
+  --medium: #7f96aa;
+  --text: #edf2f7;
+  --text-dim: #91a0b5;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--bg); overflow-x: hidden; }
+body {
+  min-width: 320px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+::selection { background: rgba(110, 231, 210, 0.24); color: var(--text); }
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: #263246; border: 2px solid var(--bg); border-radius: 999px; }
+button, input { font: inherit; }
+button { cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.grain-bg {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 8% -10%, rgba(122, 161, 154, 0.09), transparent 30rem),
+    radial-gradient(circle at 92% 30%, rgba(100, 119, 132, 0.06), transparent 26rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 30%);
+}
+.mono { font-family: ui-monospace, "SF Mono", "Fira Code", monospace; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

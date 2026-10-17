@@ -1,0 +1,19 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+# Sandbox can't reach binaries.soliditylang.org, so solc is a local solc-js
+# wrapper (see solc-wrapper.cjs) instead of foundry's usual auto-managed solc.
+# On a normal machine with internet access, delete these two lines and
+# Foundry will fetch solc itself as usual.
+solc = "/usr/local/bin/solc"
+offline = true
+
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"
+
+[etherscan]
+# optional: only needed for `forge verify-contract` / `forge script --verify`
+sepolia = { key = "${ETHERSCAN_API_KEY}" }
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

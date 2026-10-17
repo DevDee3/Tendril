@@ -1,0 +1,20 @@
+{
+  "name": "tendril",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Graph-native structural risk analysis for Solidity protocols, on FalkorDB. Built for WeMakeDevs x FalkorDB Graph Hacks.",
+  "type": "module",
+  "scripts": {
+    "ingest": "node ingest/ingest.js",
+    "scan": "node agent/agent.js",
+    "tools": "node tools/queries.js",
+    "test": "node --test test/ingest.test.js",
+    "check": "npm test"
+  },
+  "dependencies": {
+    "falkordb": "^6.0.0",
+    "@solidity-parser/parser": "^0.19.0",
+    "redis": "^5.12.1"
+  }
+}
