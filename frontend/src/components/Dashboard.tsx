@@ -19,6 +19,7 @@ export default function Dashboard({ findings }: { findings: Finding[] }) {
   const [fileName, setFileName] = useState("contract.sol");
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState("");
+  const [scanMessage, setScanMessage] = useState("");
 
   const visibleFindings = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -35,12 +36,15 @@ export default function Dashboard({ findings }: { findings: Finding[] }) {
     if (!source.trim() || scanning) return;
     setScanning(true);
     setScanError("");
+    setScanMessage("");
     try {
       const response = await fetch("/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ source, fileName }) });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Analysis failed");
-      setActiveFindings(Array.isArray(payload.findings) ? payload.findings : []);
-      setSelectedId(payload.findings?.[0]?.id);
+      const nextFindings = Array.isArray(payload.findings) ? payload.findings : [];
+      setActiveFindings(nextFindings);
+      setSelectedId(nextFindings[0]?.id);
+      setScanMessage(nextFindings.length ? `Analysis complete · ${nextFindings.length} finding${nextFindings.length === 1 ? "" : "s"} traced` : "Analysis complete · no risk paths found");
     } catch (error) {
       setScanError(error instanceof Error ? error.message : "Analysis failed");
     } finally {
@@ -63,7 +67,7 @@ export default function Dashboard({ findings }: { findings: Finding[] }) {
 
   return (
     <MotionConfig reducedMotion="user">
-    <main className="grain-bg min-h-screen overflow-x-hidden px-3 py-4 sm:px-6 sm:py-10 md:px-12">
+    <main className="grain-bg min-h-screen px-4 py-6 sm:px-6 sm:py-10 md:px-12">
       <motion.header initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="mx-auto mb-8 flex w-full max-w-7xl flex-col gap-5 border-b border-[var(--border)] pb-7 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="mono mb-2 text-[10px] uppercase tracking-[0.22em] text-[var(--accent)]">Security graph / findings</p>
@@ -73,7 +77,7 @@ export default function Dashboard({ findings }: { findings: Finding[] }) {
         <span className="mono flex w-fit items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[var(--text-dim)] shadow-[0_8px_30px_rgba(0,0,0,0.18)]"><i className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />connected · tendril</span>
       </motion.header>
 
-      <section aria-label="Analyze a contract" className="mx-auto mb-6 w-full max-w-7xl rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-4 shadow-[0_18px_55px_rgba(0,0,0,0.16)] sm:mb-8 sm:rounded-3xl sm:p-6">
+      <section aria-label="Analyze a contract" className="mx-auto mb-8 w-full max-w-7xl rounded-3xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-[0_18px_55px_rgba(0,0,0,0.16)] sm:p-6">
         <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--accent)]">Start an analysis</p>
@@ -82,7 +86,7 @@ export default function Dashboard({ findings }: { findings: Finding[] }) {
           <p className="text-xs text-[var(--text-dim)]">Structural analysis only · no transactions are executed</p>
         </div>
         <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
-          <textarea value={source} onChange={(event) => setSource(event.target.value)} placeholder="Paste Solidity source here, or choose a .sol file…" spellCheck={false} className="min-h-32 w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--bg-soft)] px-3 py-3 font-mono text-xs leading-6 text-[var(--text)] outline-none placeholder:text-[var(--text-dim)] focus:border-[var(--accent)]/60 sm:px-4" />
+          <textarea value={source} onChange={(event) => setSource(event.target.value)} placeholder="Paste Solidity source here, or choose a .sol file…" spellCheck={false} className="min-h-28 w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--bg-soft)] px-4 py-3 font-mono text-xs leading-6 text-[var(--text)] outline-none placeholder:text-[var(--text-dim)] focus:border-[var(--accent)]/60" />
           <div className="flex flex-col gap-3 lg:min-w-44">
             <label className="flex min-h-12 cursor-pointer items-center justify-center rounded-xl border border-dashed border-[var(--border-strong)] px-4 text-center text-xs text-[var(--text-dim)] transition-colors hover:border-[var(--accent)]/60 hover:text-[var(--text)]">
               <input type="file" accept=".sol,text/plain" className="sr-only" onChange={(event) => event.target.files?.[0] && readContract(event.target.files[0])} />
@@ -92,6 +96,7 @@ export default function Dashboard({ findings }: { findings: Finding[] }) {
           </div>
         </div>
         {scanError && <p role="alert" className="mt-3 text-xs text-[var(--critical)]">{scanError}</p>}
+        {scanMessage && !scanError && <p role="status" className="mt-3 text-xs text-[var(--accent)]">{scanMessage}</p>}
       </section>
 
       <section aria-label="Finding summary" className="mx-auto mb-6 grid w-full max-w-7xl grid-cols-2 gap-2 sm:mb-8 sm:grid-cols-4 sm:gap-3">

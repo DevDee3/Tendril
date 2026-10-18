@@ -13,8 +13,9 @@ $tokenLine = $envLines | Where-Object { $_ -match '^TENDRIL_API_TOKEN=' } | Sele
 $token = if ($tokenLine) { ($tokenLine -split "=", 2)[1].Trim() } else { "" }
 if ([string]::IsNullOrWhiteSpace($token) -or $token -eq "replace-with-a-long-random-token") {
   $bytes = [byte[]]::new(32)
-  [Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
-  $token = [Convert]::ToHexString($bytes).ToLowerInvariant()
+  $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+  try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
+  $token = ([BitConverter]::ToString($bytes) -replace "-", "").ToLowerInvariant()
   if ($tokenLine) {
     $envLines = $envLines | ForEach-Object { if ($_ -match '^TENDRIL_API_TOKEN=') { "TENDRIL_API_TOKEN=$token" } else { $_ } }
   } else {

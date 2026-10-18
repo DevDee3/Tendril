@@ -1,11 +1,10 @@
-version: "3.8"
 services:
   falkordb:
     image: falkordb/falkordb:v4.20.4
     container_name: tendril-falkordb
     ports:
       - "6379:6379"
-      - "3000:3000"   # FalkorDB Browser
+      - "${FALKORDB_BROWSER_PORT:-3002}:3000"   # FalkorDB Browser
     volumes:
       - falkordb-data:/data
     healthcheck:
@@ -23,12 +22,14 @@ services:
       TENDRIL_GRAPH: tendril
       TENDRIL_API_PORT: 8787
       TENDRIL_API_TOKEN: ${TENDRIL_API_TOKEN:?Set TENDRIL_API_TOKEN in .env}
-      TENDRIL_ALLOWED_ORIGINS: ${TENDRIL_ALLOWED_ORIGINS:-http://localhost:3001}
-      TENDRIL_RATE_LIMIT_REDIS_URL: ${TENDRIL_RATE_LIMIT_REDIS_URL:-redis://falkordb:6379}
+      TENDRIL_ALLOWED_ORIGINS: ${TENDRIL_ALLOWED_ORIGINS:-http://localhost:3000}
+      # Inside Compose, localhost refers to this container. Always use the
+      # FalkorDB service name for the shared Redis-compatible rate limiter.
+      TENDRIL_RATE_LIMIT_REDIS_URL: redis://falkordb:6379
     ports:
       - "8787:8787"
     healthcheck:
-      test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:8787/health"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -44,7 +45,7 @@ services:
       TENDRIL_API_URL: http://tendril-api:8787
       TENDRIL_API_TOKEN: ${TENDRIL_API_TOKEN:?Set TENDRIL_API_TOKEN in .env}
     ports:
-      - "3001:3000"
+      - "3000:3000"
     depends_on:
       tendril-api:
         condition: service_healthy

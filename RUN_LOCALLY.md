@@ -19,6 +19,7 @@ bash setup.sh
 The setup creates `.env`, generates a secure API token, builds all images,
 waits for FalkorDB and the API to become ready, and starts the complete stack.
 Then open http://localhost:3001 and use the upload/paste analysis flow.
+The optional FalkorDB browser is available at http://localhost:3002.
 
 To stop the stack:
 

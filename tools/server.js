@@ -1,6 +1,6 @@
 import http from "node:http";
 import { createClient } from "redis";
-import { findRiskPaths, graphReady, mostCriticalFunctions, oracleDependentState } from "./queries.js";
+import { findRiskPaths, graphReady, mostCriticalFunctions, oracleDependentState, stateVariablesForFunctions } from "./queries.js";
 import { scanSource } from "../agent/agent.js";
 import { confirmFinding } from "../agent/memory.js";
 
@@ -86,7 +86,8 @@ function severityFor(hasOracleOverlap, centrality) {
   return "medium";
 }
 
-function toFinding(row, criticalMap, oracleRows, graphName, index) {
+function toFinding(row, criticalMap, oracleRows, stateRows, graphName, index) {
+  const token = /^(transfer|send|call)$/i.test(row.token) ? "ETH" : row.token;
   const oracleLinked = oracleRows.some(
     (oracle) => oracle.consumers?.includes(row.entry) || oracle.consumers?.includes(row.sink)
   );
@@ -99,7 +100,13 @@ function toFinding(row, criticalMap, oracleRows, graphName, index) {
     nodes.push({ id: `sink-${index}`, label: `${row.sink}()`, kind: "Function" });
     edges.push({ from: `entry-${index}`, to: `sink-${index}`, type: "CALLS" });
   }
-  nodes.push({ id: `token-${index}`, label: row.token, kind: "Token" });
+  const relatedState = stateRows.filter((state) => state.function === row.entry || state.function === row.sink);
+  for (const state of relatedState) {
+    const stateId = `state-${index}-${state.state_var}`;
+    if (!nodes.some((node) => node.id === stateId)) nodes.push({ id: stateId, label: state.state_var, kind: "StateVar" });
+    edges.push({ from: row.entry === row.sink ? `entry-${index}` : `sink-${index}`, to: stateId, type: state.relation });
+  }
+  nodes.push({ id: `token-${index}`, label: token, kind: "Token" });
   edges.push({
     from: row.entry === row.sink ? `entry-${index}` : `sink-${index}`,
     to: `token-${index}`,
@@ -111,7 +118,7 @@ function toFinding(row, criticalMap, oracleRows, graphName, index) {
     protocol: graphName,
     entry: row.entry,
     sink: row.sink,
-    token: row.token,
+    token,
     severity: severityFor(oracleLinked, centrality),
     summary: `${row.entry}() reaches ${row.sink}(), which moves ${row.token}. ${oracleLinked ? "The path also touches state written by an oracle or price-reporting function." : "No oracle-dependent state was found on this path."}`,
     nodes,
@@ -120,13 +127,14 @@ function toFinding(row, criticalMap, oracleRows, graphName, index) {
 }
 
 async function findings(graphName) {
-  const [riskRows, criticalRows, oracleRows] = await Promise.all([
+  const [riskRows, criticalRows, oracleRows, stateRows] = await Promise.all([
     findRiskPaths(graphName),
     mostCriticalFunctions(graphName),
     oracleDependentState(graphName),
+    stateVariablesForFunctions(graphName),
   ]);
   const criticalMap = new Map(criticalRows.map((row) => [row.function, row.inbound_calls]));
-  return riskRows.map((row, index) => toFinding(row, criticalMap, oracleRows, graphName, index));
+  return riskRows.map((row, index) => toFinding(row, criticalMap, oracleRows, stateRows, graphName, index));
 }
 
 async function findingsWithRetry(graphName) {

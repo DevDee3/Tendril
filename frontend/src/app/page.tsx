@@ -1,14 +1,17 @@
 import Dashboard from "@/components/Dashboard";
 import { getFindings, type Finding } from "@/lib/findings";
-import { connection } from "next/server";
 import { Suspense } from "react";
+import { getTendrilApiToken } from "@/lib/serverConfig";
+
+export const dynamic = "force-dynamic";
 
 async function loadFindings(): Promise<{ findings: Finding[]; live: boolean }> {
   const apiUrl = process.env.TENDRIL_API_URL || "http://127.0.0.1:8787";
+  const token = getTendrilApiToken();
   try {
     const response = await fetch(`${apiUrl}/api/findings?graph=tendril`, {
       cache: "no-store",
-      headers: process.env.TENDRIL_API_TOKEN ? { Authorization: `Bearer ${process.env.TENDRIL_API_TOKEN}` } : undefined,
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
     if (!response.ok) throw new Error(`API returned ${response.status}`);
     const payload = await response.json();
@@ -20,7 +23,6 @@ async function loadFindings(): Promise<{ findings: Finding[]; live: boolean }> {
 }
 
 async function LiveHome() {
-  await connection();
   const { findings, live } = await loadFindings();
   return (
     <>

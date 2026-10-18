@@ -27,8 +27,9 @@ export async function graphReady(graphName = "tendril") {
 
 export async function findRiskPaths(graphName) {
   const res = await queryGraph(graphName, `
-    MATCH p = (entry:Function {visibility:"public"})-[:CALLS*0..6]->(sink:Function)-[:MOVES_FUNDS]->(t:Token)
-    WHERE NOT (entry)-[:GUARDED_BY]->(:Modifier)
+    MATCH p = (entry:Function)-[:CALLS*0..6]->(sink:Function)-[:MOVES_FUNDS]->(t:Token)
+    WHERE entry.visibility IN ["public", "external"]
+      AND NOT (entry)-[:GUARDED_BY]->(:Modifier)
     RETURN entry.name AS entry, sink.name AS sink, t.symbol AS token
     LIMIT 25
   `);
@@ -59,6 +60,14 @@ export async function oracleDependentState(graphName) {
     MATCH (oracle:Function)-[:WRITES]->(v:StateVar)<-[:READS]-(consumer:Function)
     WHERE oracle.name CONTAINS "price" OR oracle.name CONTAINS "Price"
     RETURN oracle.name AS oracle_fn, v.name AS state_var, collect(consumer.name) AS consumers
+  `);
+  return res.data;
+}
+
+export async function stateVariablesForFunctions(graphName) {
+  const res = await queryGraph(graphName, `
+    MATCH (f:Function)-[r:READS|WRITES]->(v:StateVar)
+    RETURN f.name AS function, v.name AS state_var, type(r) AS relation
   `);
   return res.data;
 }

@@ -1,0 +1,43 @@
+services:
+  falkordb:
+    image: falkordb/falkordb:v4.20.4
+    container_name: tendril-backend-falkordb
+    ports:
+      - "6379:6379"
+      - "${FALKORDB_BROWSER_PORT:-3002}:3000"
+    volumes:
+      - tendril-backend-falkordb-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  api:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    container_name: tendril-backend-api
+    environment:
+      NODE_ENV: production
+      FALKORDB_HOST: falkordb
+      FALKORDB_PORT: 6379
+      TENDRIL_GRAPH: ${TENDRIL_GRAPH:-tendril}
+      TENDRIL_API_PORT: 8787
+      TENDRIL_API_TOKEN: ${TENDRIL_API_TOKEN:?Set TENDRIL_API_TOKEN in .env}
+      TENDRIL_ALLOWED_ORIGINS: ${TENDRIL_ALLOWED_ORIGINS:?Set TENDRIL_ALLOWED_ORIGINS in .env}
+      TENDRIL_RATE_LIMIT_REDIS_URL: redis://falkordb:6379
+    ports:
+      - "${TENDRIL_API_PORT:-8787}:8787"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    depends_on:
+      falkordb:
+        condition: service_healthy
+
+volumes:
+  tendril-backend-falkordb-data:

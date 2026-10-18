@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getTendrilApiToken } from "@/lib/serverConfig";
 
 export async function POST(request: Request) {
   try {
@@ -8,11 +9,12 @@ export async function POST(request: Request) {
     if (!source.trim()) return NextResponse.json({ error: "Add Solidity source before scanning." }, { status: 400 });
 
     const apiUrl = process.env.TENDRIL_API_URL || "http://127.0.0.1:8787";
+    const token = getTendrilApiToken();
     const response = await fetch(`${apiUrl}/api/scan`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        ...(process.env.TENDRIL_API_TOKEN ? { authorization: `Bearer ${process.env.TENDRIL_API_TOKEN}` } : {}),
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({ source, fileName, graphName: "tendril" }),
       cache: "no-store",
